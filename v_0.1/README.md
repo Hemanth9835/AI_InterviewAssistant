@@ -1,6 +1,6 @@
 # Interview Practice v0
 
-Minimal React + FastAPI app for generating one interview prompt at a time.
+React + FastAPI app for generating one interview prompt at a time.
 
 ## Setup
 
