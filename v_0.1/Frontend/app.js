@@ -21,7 +21,7 @@ function InterviewApp() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("https://ai-interviewassistant-z3kl.onrender.com", {
+      const response = await fetch("https://ai-interviewassistant-z3kl.onrender.com/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ focus, difficulty, role }),
