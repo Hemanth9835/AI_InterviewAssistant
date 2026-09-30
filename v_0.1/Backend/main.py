@@ -15,7 +15,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
         allow_origins=[
-        "https://ai-interviewassistant-z3kl.onrender.com",
+        "https://ai-interviewassistant-staticsite.onrender.com",
     ],
    allow_credentials=True,
     allow_methods=["POST", "GET"],
