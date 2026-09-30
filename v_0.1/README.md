@@ -1,6 +1,6 @@
 # Interview Practice v0
 
-Minimal React + FastAPI app for generating one interview prompt at a time.
+React + FastAPI app for generating one interview prompt at a time.
 
 ## Setup
 
@@ -16,8 +16,6 @@ Minimal React + FastAPI app for generating one interview prompt at a time.
    ```powershell
    Copy-Item .env.example .env
    ```
-
-   Open `.env` and replace `your-openai-api-key` with your key. The backend loads
    this file at startup. `.env` is ignored by Git and must never be committed.
 
 3. Start FastAPI:
@@ -37,6 +35,6 @@ Minimal React + FastAPI app for generating one interview prompt at a time.
 
 The optional `OPENAI_MODEL` environment variable defaults to `gpt-4o-mini`.
 
-For a public deployment, use the hosting provider's secret/environment-variable
-store instead of uploading `.env`. The API key stays in FastAPI and is never sent
+For a public deployment, use the hosting provider's secret/environment-variable stored instead of uploading `.env`. 
+The API key stays in FastAPI and is never sent
 to the React browser client.
