@@ -2,3 +2,7 @@ fastapi
 uvicorn[standard]
 openai
 python-dotenv
+SQLAlchemy
+psycopg2-binary
+PyJWT
+pwdlib[argon2]
