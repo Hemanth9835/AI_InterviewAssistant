@@ -2,20 +2,6 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #f3f5f0; }
 .page-shell { min-height: 100vh; max-width: 1160px; margin: auto; padding: 72px 7vw 40px; display: flex; flex-direction: column; }
-.login-shell { min-height: 100vh; display: grid; place-items: center; padding: 32px 24px; }
-.login-card { width: min(100%, 440px); padding: 42px; border: 1px solid #d5ddd7; border-radius: 6px; background: #fff; box-shadow: 0 18px 45px rgba(23, 33, 31, .08); }
-.login-card h1 { font-size: clamp(42px, 7vw, 64px); }
-.login-intro { margin: 18px 0 30px; color: #66736e; font-size: 16px; line-height: 1.5; }
-.login-card form { display: grid; gap: 10px; }
-.login-card form label { margin: 8px 0 0; }
-.login-card form input { width: 100%; }
-.login-button { min-height: 52px; justify-content: center; margin-top: 10px; }
-.mode-button { justify-content: center; padding: 8px 12px; background: transparent; color: #1c7c68; font-size: 13px; }
-.mode-button:hover { background: #eef5f1; color: #17211f; }
-.form-error { margin: 8px 0 0; color: #a54232; font-size: 14px; }
-.topbar { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 54px; }
-.signed-in { color: #66736e; font-size: 13px; }
-.logout-button { padding: 10px 14px; font-size: 13px; }
 .hero { max-width: 760px; }
 .eyebrow { margin: 0 0 24px; color: #66736e; font-size: 11px; font-weight: 700; letter-spacing: 2px; }
 h1 { margin: 0; font: 600 clamp(44px, 7vw, 82px)/.98 "Space Grotesk", sans-serif; letter-spacing: -2px; }
@@ -48,4 +34,4 @@ button:hover { background: #1c7c68; } button:disabled { cursor: wait; opacity: .
 #prompt { max-width: 700px; margin: 22px 0 0; font: 500 24px/1.35 "Space Grotesk", sans-serif; }
 footer { margin-top: auto; padding-top: 80px; display: flex; align-items: center; gap: 14px; color: #8b9690; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; }
 footer i { width: 4px; height: 4px; border-radius: 50%; background: #e3a45d; }
-@media (max-width: 600px) { .page-shell { padding: 42px 24px 28px; } .login-card { padding: 30px 24px; } .topbar { margin-bottom: 42px; } .practice-panel { margin-top: 56px; } .input-row { flex-direction: column; } button { min-height: 52px; justify-content: space-between; } .result { padding: 23px; } #prompt { font-size: 20px; } footer { padding-top: 60px; gap: 9px; font-size: 9px; } }
+@media (max-width: 600px) { .page-shell { padding: 42px 24px 28px; } .practice-panel { margin-top: 56px; } .input-row { flex-direction: column; } button { min-height: 52px; justify-content: space-between; } .result { padding: 23px; } #prompt { font-size: 20px; } footer { padding-top: 60px; gap: 9px; font-size: 9px; } }

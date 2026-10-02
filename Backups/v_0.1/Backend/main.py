@@ -2,21 +2,11 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-
-try:
-    from .auth import create_access_token, get_token_payload, hash_password, verify_password
-    from .database import SessionLocal, User, init_db
-except ImportError:
-    from auth import create_access_token, get_token_payload, hash_password, verify_password
-    from database import SessionLocal, User, init_db
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -24,17 +14,13 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        allow_origins=[
         "https://ai-interviewassistant-staticsite.onrender.com",
     ],
    allow_credentials=True,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
-
-bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class GenerateRequest(BaseModel):
@@ -52,22 +38,6 @@ class GenerateRequest(BaseModel):
 
 class GenerateResponse(BaseModel):
     prompt: str
-
-
-class LoginRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
-    password: str = Field(min_length=1, max_length=200)
-
-
-class RegisterRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
-    password: str = Field(min_length=8, max_length=200)
-
-
-class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    name: str
 
 
 SYSTEM_PROMPT = (
@@ -129,42 +99,6 @@ def build_messages(
     ]
 
 
-def get_database_session() -> Session:
-    if SessionLocal is None:
-        raise HTTPException(status_code=503, detail="DATABASE_URL is not configured.")
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_database_session),
-) -> User:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Login required.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    payload = get_token_payload(credentials)
-    try:
-        user_id = int(payload["sub"])
-    except (KeyError, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="Invalid login token.") from exc
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User no longer exists.")
-    return user
-
-
-@app.on_event("startup")
-def create_database_tables() -> None:
-    init_db()
-
-
 @app.get("/")
 async def root():
     return {"message": "Interview question API is running"}
@@ -175,51 +109,8 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/api/auth/login", response_model=LoginResponse)
-def login(request: LoginRequest, db: Session = Depends(get_database_session)):
-    user = db.query(User).filter(User.name == request.name.strip()).first()
-    if user is None or not verify_password(request.password, user.password):
-        raise HTTPException(status_code=401, detail="Invalid user name or password.")
-    try:
-        token = create_access_token(user.id, user.name)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return LoginResponse(access_token=token, name=user.name)
-
-
-@app.post("/api/auth/register", response_model=LoginResponse, status_code=201)
-def register(request: RegisterRequest, db: Session = Depends(get_database_session)):
-    name = request.name.strip()
-    if not name:
-        raise HTTPException(status_code=422, detail="User name cannot be empty.")
-    if db.query(User).filter(User.name == name).first() is not None:
-        raise HTTPException(status_code=409, detail="That user name is already in use.")
-
-    user = User(name=name, password=hash_password(request.password))
-    db.add(user)
-    try:
-        db.commit()
-        db.refresh(user)
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="That user name is already in use.") from exc
-    try:
-        token = create_access_token(user.id, user.name)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return LoginResponse(access_token=token, name=user.name)
-
-
-@app.get("/api/auth/me")
-def current_user(user: User = Depends(get_current_user)):
-    return {"id": user.id, "name": user.name}
-
-
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate_prompt(
-    request: GenerateRequest,
-    user: User = Depends(get_current_user),
-):
+async def generate_prompt(request: GenerateRequest):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="OPENAI_API_KEY is not configured.")
