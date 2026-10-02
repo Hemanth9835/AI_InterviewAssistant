@@ -3,7 +3,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import Integer, String, create_engine
+from sqlalchemy import Integer, String, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -33,7 +33,9 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False) if e
 def init_db() -> None:
     if engine is None:
         return
-    Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        connection.execute(text("CREATE SCHEMA IF NOT EXISTS students_users"))
+        Base.metadata.create_all(bind=connection)
 
 
 def get_db() -> Generator[Session, None, None]:
