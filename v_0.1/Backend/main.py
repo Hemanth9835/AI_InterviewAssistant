@@ -6,12 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 try:
     from .auth import create_access_token, get_token_payload, hash_password, verify_password
-    from .database import SessionLocal, User, init_db
+    from .database import Question, SessionLocal, User, init_db
     from .services import (
         LanguageModelRequestError,
         MissingOpenAIKeyError,
@@ -19,7 +19,7 @@ try:
     )
 except ImportError:
     from auth import create_access_token, get_token_payload, hash_password, verify_password
-    from database import SessionLocal, User, init_db
+    from database import Question, SessionLocal, User, init_db
     from services import LanguageModelRequestError, MissingOpenAIKeyError, generate_interview_prompt
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -164,6 +164,7 @@ def current_user(user: User = Depends(get_current_user)):
 async def generate_prompt(
     request: GenerateRequest,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_database_session),
 ):
     try:
         prompt = await generate_interview_prompt(
@@ -175,4 +176,20 @@ async def generate_prompt(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except LanguageModelRequestError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    generated_question = Question(
+        user_id=user.id,
+        question=prompt,
+        focus=request.focus.strip(),
+        difficulty=request.difficulty,
+        role=request.role,
+    )
+    db.add(generated_question)
+    try:
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="The generated question could not be saved.",
+        ) from exc
     return GenerateResponse(prompt=prompt)
