@@ -1,43 +1,18 @@
 import os
-from pathlib import Path
-from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from pydantic import BaseModel, Field
-
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-        allow_origins=[
-        "https://ai-interviewassistant-staticsite.onrender.com",
-    ],
-   allow_credentials=True,
-    allow_methods=["POST", "GET"],
-    allow_headers=["*"],
-)
 
 
-class GenerateRequest(BaseModel):
-    focus: str = Field(default="", max_length=200)
-    difficulty: Literal["easy", "medium", "hard"] = "medium"
-    role: Literal[
-        "data_analyst",
-        "data_engineer",
-        "data_scientist",
-        "machine_learning_engineer",
-        "mlops",
-        "ai_engineering",
-    ] = "data_scientist"
+class InterviewServiceError(RuntimeError):
+    """Base error for interview prompt generation failures."""
 
 
-class GenerateResponse(BaseModel):
-    prompt: str
+class MissingOpenAIKeyError(InterviewServiceError):
+    """Raised when the OpenAI API key is not configured."""
+
+
+class LanguageModelRequestError(InterviewServiceError):
+    """Raised when the language model request fails or returns no prompt."""
 
 
 SYSTEM_PROMPT = (
@@ -99,34 +74,31 @@ def build_messages(
     ]
 
 
-@app.get("/")
-async def root():
-    return {"message": "Interview question API is running"}
-
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-
-@app.post("/api/generate", response_model=GenerateResponse)
-async def generate_prompt(request: GenerateRequest):
+async def generate_interview_prompt(
+    focus: str,
+    difficulty: str,
+    role: str,
+) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=503, detail="OPENAI_API_KEY is not configured.")
+        raise MissingOpenAIKeyError("OPENAI_API_KEY is not configured.")
 
     client = AsyncOpenAI(api_key=api_key)
     try:
         response = await client.responses.create(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            input=build_messages(request.focus.strip(), request.difficulty, request.role),
+            input=build_messages(focus.strip(), difficulty, role),
             max_output_tokens=120,
             temperature=0.8,
         )
     except Exception as exc:
-        raise HTTPException(status_code=502, detail="The language model request failed.") from exc
+        raise LanguageModelRequestError(
+            "The language model request failed."
+        ) from exc
 
     prompt = response.output_text.strip()
     if not prompt:
-        raise HTTPException(status_code=502, detail="The language model returned no prompt.")
-    return GenerateResponse(prompt=prompt)
+        raise LanguageModelRequestError(
+            "The language model returned no prompt."
+        )
+    return prompt
